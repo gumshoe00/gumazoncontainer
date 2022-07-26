@@ -1,0 +1,21 @@
+<div style="width: 100%">
+  <form [formGroup]="form" (ngSubmit)="login()" style="width: 96%; margin: 3% auto">
+    <div style="width: 100%; margin: 3% 0;"><h1 style="margin: 0 auto;">Login</h1></div>
+    <div style="width: 100%; margin: 3% 0;">
+      <label>Email</label>
+      <input type="text" formControlName="email" id="email" style="width: 100%;" />
+    </div>
+
+    <div style="width: 100%; margin: 3% 0;">
+      <label>Password</label>
+      <input type="text" id="password"  formControlName="password" style="width: 100%;" />
+    </div>
+
+    <div style="width: 100%; margin: 3% 0;">
+      <button type="submit" [disabled]="!this.form?.valid" style="margin: 0 auto">
+        Login
+      </button>
+    </div>
+
+  </form>
+</div>

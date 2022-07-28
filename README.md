@@ -4,6 +4,18 @@ Gumazon people trade center, translates and mirrors your offering into local mar
 
 ## Development
 
+To produce a built artifact for the project:
+
+
+1. Checkout the project source code.
+
+
+2. Install the build system.
+
+
+3. Execute the build system.
+
+
 ### Specifications:
 
 - Executable using pyinstaller

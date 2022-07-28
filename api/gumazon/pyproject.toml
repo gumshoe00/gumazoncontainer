@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Gumazon people trade center, translates and mirrors your offering into local markets in Africa, Asia, The Americas, Europe, and Australia."
 readme = "README.md"
 authors = [{ name = "Gumshoe Media Inc.", email = "gumshoe.media.inc@gmail.com" }]
-license = { file = "../../LICENSE" }
+license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",

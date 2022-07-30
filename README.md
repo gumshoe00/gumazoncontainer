@@ -81,6 +81,7 @@ To produce a built artifact for the architecture:
 8. ### DB Support:
    - mailto: `gumshoe.media.inc@gmail.com?subject=Gumazon DB Support&body=My Database Question is ...`
 
+.
 
 > ### API
 
@@ -108,6 +109,7 @@ To produce a built artifact for the architecture:
 8. ### API Support:
    - mailto: `gumshoe.media.inc@gmail.com?subject=Gumazon API Support&body=My API Question is ...`
 
+.
 
 > ### UI
 

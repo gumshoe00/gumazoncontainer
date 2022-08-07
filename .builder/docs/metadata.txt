@@ -1,0 +1,13 @@
+# Gumazon translates and mirrors your content into local markets abroad.
+
+
+Given a text and local markets abroad,
+gumazon translates the text into appropriate languages and
+mirrors it into the selected local markets abroad.
+
+
+## Metadata
+
+- name: gumazon
+- repo_url:
+

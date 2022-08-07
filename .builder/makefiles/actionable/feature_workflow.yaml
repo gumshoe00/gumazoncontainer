@@ -1,0 +1,92 @@
+name: feature workflow
+
+
+application:
+  - meta: App metadata
+    - name: gumazon
+    - descr:
+      Given `a text with lang`, `output langs` and `local markets abroad`,
+      `translate` the string into selected langs and
+      `mirror` it into selected local markets abroad.
+
+  - name: repo-url - The repository URL to be pulled from.
+    run: read REPO_URL
+
+
+feature:
+  - name: get-feature-name - Select a feature to work on from approved features [mls, posts, member, cart].
+    run: read FEATURE_NAME
+
+  - name: get-feature-descr - Short description of feature's input, output and why.
+    run: read FEATURE_DESCR
+
+  - name: get-repo-start-ref - Commit to start at. This names a commit that is already in the upstream history.
+    run: read REPO_START_REF
+
+
+
+# Git Branch Merging Best Practices
+production:
+
+  1. clone_main_repo:
+    - name: clone-repo - Clone remote repo into a local repo.
+      run: git pull origin main
+
+  2. create_feature_branch:
+    - name: checkout-feature-branch - Create a branch in local repo in which feature will be built.
+      run: git checkout -b ${FEATURE_NAME}/${FEATURE_DESCR}
+
+    - name: implement-feature - Implement the feature
+      run:
+
+    - name: test-feature-units - Pass all unit tests.
+      run: unitest
+
+    - name: commit-feature - Commit all changes in the new branch.
+      run: git commit -am 'feature:mls - Given a string with lang, output langs and local markets abroad, translate to selected langs and mirror into selected local markets abroad.'
+
+
+  3. merge_feature_branch:
+    - name: checkout-master - Checkout the master branch locally.
+      run: git checkout main
+
+    - name: pull-master-latest - Pull down the master branch from GitHub to get the most up to date changes from others.
+      run: git pull origin main
+
+    - name: test-master-e2e - pass all tests on master
+      run: unitest
+
+    - name: checkout-feature-branch - checkout the feature branch.
+      run: git checkout ${FEATURE_NAME}/${FEATURE_DESCR}
+
+    - name: merge-feature-branch - From the feature branch, merge in the local master branch.
+      run: git merge main
+
+    - name: resolve-feature-branch-merge-conflicts - Resolve any merge conflicts.
+      run:
+
+    - name: test-feature-e2e - Pass all e2e tests on the new branch.
+      run:
+
+    - name: commit-feature - Commit all changes from the merge.
+      run: git commit -am "Merge ${FEATURE_NAME} branch in master."
+
+    - name: push-feature - Push that change to your public repository for others to see.
+      run: git push ${REPO_URL} ${LOCAL_BRANCH}:${REMOTE_BRANCH}
+
+  3. Create pull request:
+    - name: request-feature-pull - Produce a request to the upstream, summarizing changes between <start> and <end> commits|releases|ref, to pull from your public repository.
+      run: git request-pull ${REPO_START_REF} ${REPO_URL} ${LOCAL_BRANCH}:${REMOTE_BRANCH}
+      descr:
+        - 'ref:     https://git-scm.com/docs/git-request-pull'
+        - 'cmd:     git request-pull [-p] <start> <URL> [<end>]'
+        - '-p:      Include patch text in the output'
+        - '<start>: Commit to start at. This names a commit that is already in the upstream history.'
+        - '<URL>:   The repository URL to be pulled from.'
+        - '<end>:   Commit to end (<local>:<remote>, defaults to HEAD), name commit @history-tip u ask to be pulled.'
+
+  10. title: A teammate reviews the code for quality and functionality.
+     run:
+
+  11. title: The teammate merges the pull request and deletes your branch from GitHub.
+     run:

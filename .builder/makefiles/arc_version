@@ -1,0 +1,281 @@
+#!/usr/bin/env python3
+
+# example command: $ python3 arc_version patch True True True
+
+import datetime
+
+import json
+
+import pathlib
+
+import subprocess
+
+import shlex
+
+import sys
+
+import pydantic
+
+
+class BuilderSettings(pydantic.BaseSettings):
+    """
+    Attributes:
+
+        - dev_container_dirname: assumes this BuilderSettings class is in `[APP_NAME]container/makefiles/__file__`
+
+        - app_name: assumes dev_container_dirname's name is `[APP_NAME]container`
+
+        -
+    """
+    dev_container_dirname: pathlib.Path = pathlib.Path(__file__).parent.parent
+    builder_scripts_dirname: pathlib.Path = pathlib.Path(__file__).parent.joinpath('makefiles/include')
+    app_name: str = dev_container_dirname.name.replace('container', '')
+
+
+CNF = BuilderSettings()
+
+
+class ArcApiBuilder:
+    def __init__(self):
+        self._app_name = CNF.app_name
+        self._pkg_dir = CNF.dev_container_dirname.joinpath(f"api/{self._app_name}")
+        self._version_outfile = CNF.dev_container_dirname.joinpath(f"api/{self._app_name}/{self._app_name}/__init__.py")
+        self._get_version_sh_path = CNF.builder_scripts_dirname.joinpath('version_get_pyproject_toml.sh')
+        self._set_version_sh_path = CNF.builder_scripts_dirname.joinpath('version_set_pyproject_toml.sh')
+
+        subprocess.run(shlex.split(f"chmod +x {self._get_version_sh_path}"))
+        subprocess.run(shlex.split(f"chmod +x {self._set_version_sh_path}"))
+
+    def get_version(self):
+        """Get Current Version
+
+        :return:
+        """
+        version = '0.0.0'
+        with open(self._version_outfile, 'r') as _infl:
+            content = _infl.readlines()
+
+        if len(content) > 0:
+            for ln in content:
+                if ln.startswith('__version__'):
+                    version = ln.split('=')[-1]
+
+        return version.strip()
+
+    def pump_version(self, semver_str):
+        """Pump Version.
+
+        :param semver_str: options(patch, minor, major, prepatch, preminor, premajor, prerelease)
+
+        :return: none
+        """
+
+        version = ''
+        subprocess.run(shlex.split(f"{self._set_version_sh_path} {self._pkg_dir} {semver_str}"), capture_output=False)
+        output = subprocess.run(shlex.split(f"{self._get_version_sh_path} {self._pkg_dir}"), capture_output=True)
+        data = output.stdout.decode('utf-8').strip()
+        if data:
+            version = data
+
+        if version:
+            self._update_version_outfile(version)
+
+    def _update_version_outfile(self, version):
+        """Pump Version.
+
+        :param semver_str: options(patch, minor, major, prepatch, preminor, premajor, prerelease)
+
+        :return: none
+        """
+
+        content = []
+        with open(self._version_outfile, 'r') as _infl:
+            content.extend(_infl.readlines())
+
+        if len(content) > 0:
+            for ln in content:
+                if ln.startswith('__version__'):
+                    content.remove(ln)
+        content.append(f"__version__ = '{version}'\n")
+
+        with open(self._version_outfile, 'w') as _outnfl:
+            _outnfl.writelines(content)
+
+
+class ArcUiBuilder:
+    def __init__(self):
+        self._app_name = CNF.app_name
+        self._app_dir = CNF.dev_container_dirname.joinpath(f"ui/{self._app_name}")
+        self._version_outfile = CNF.dev_container_dirname.joinpath(f"{self._app_dir}/package.json")
+        self._set_version_sh_path = CNF.dev_container_dirname.joinpath('makefiles/include/version_set_package_json.sh')
+
+        subprocess.run(shlex.split(f"chmod +x {self._set_version_sh_path}"))
+
+    def get_version(self):
+        """Get Current Version
+
+        :return:
+        """
+        version = '0.0.0'
+        with open(self._version_outfile, 'r') as _infl:
+            data = _infl.read()
+            if data:
+                version = json.loads(data).get('version', version)
+
+        return version.strip()
+
+    def pump_version(self, semver_str):
+        """Pump Version.
+
+        :param semver_str: options(patch, minor, major, prepatch, preminor, premajor, prerelease)
+
+        :return: none
+        """
+
+        subprocess.run(shlex.split(f"{self._set_version_sh_path} {self._version_outfile.parent} {semver_str}"))
+
+
+class ArcAppBuilder:
+    def __init__(self):
+        self._version_outfile = CNF.dev_container_dirname.joinpath('version.txt')
+
+    def get_version(self):
+        """Get Current Version
+
+        :return:
+        """
+        version = '0.0.0'
+        if self._version_outfile.exists():
+            with open(self._version_outfile, 'r') as _infl:
+                data = _infl.read().strip()
+                if data:
+                    version = data
+
+        return version.strip()
+
+    def pump_version(self, semver_str):
+        """Pump Version.
+
+        :param semver_str: options(patch, minor, major, prepatch, preminor, premajor, prerelease)
+
+        :return: none
+        """
+
+        current_version_parts = self.get_version().split('.')
+        cur_x = int(current_version_parts[0] if current_version_parts[0] else 0)
+        cur_y = int(current_version_parts[1] if current_version_parts[1] else 0)
+        cur_z = int(current_version_parts[2] if current_version_parts[2] else 0)
+
+        version_parts = {
+            "x": int((cur_x + 1) if semver_str == 'major' else cur_x),
+            "y": int((cur_y + 1) if semver_str == 'minor' else cur_y),
+            "z": int((cur_z + 1) if semver_str == 'patch' else cur_z),
+        }
+
+        version = '.'.join([str(v) for v in version_parts.values()])
+        self._update_version_outfile(version)
+
+    def _update_version_outfile(self, version):
+        """Write Version Outfile.
+
+        :param version: 'x.y.z'
+
+        :return: none
+        """
+
+        with open(self._version_outfile, '+w') as _outfl:
+            _outfl.write(version)
+
+
+class ArcBuilder:
+    def __init__(self):
+        self._app_name = CNF.app_name
+        self._app = ArcAppBuilder()
+        self._api = ArcApiBuilder()
+        self._ui = ArcUiBuilder()
+        self._changelog_file = CNF.dev_container_dirname.joinpath('changelog.txt')
+        self._version = {}
+        self.__update()
+
+    def pump_version(self, semver_str, pump_app=False, pump_api=False, pump_ui=False):
+        """Pump Version.
+
+        :param semver_str: options(patch, minor, major, prepatch, preminor, premajor, prerelease)
+
+        :return: none
+        """
+
+        if pump_app:
+            self._app.pump_version(semver_str)
+
+        if pump_api:
+            self._api.pump_version(semver_str)
+
+        if pump_ui:
+            self._ui.pump_version(semver_str)
+
+
+    def changelog(self):
+        """Writes the given version to the given outfile.
+
+
+        :param version: version in the format of "x.y.z" as in "0.1.0".
+
+        :param outfile: the file storing the current app version as in './VERSION'
+
+        :return: None
+
+        """
+        self.__update()
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        changelog_entry = f"{timestamp}  {self._app_name}"
+
+        for k, v in self._version.items():
+            changelog_entry += f"\n\t- {str(k).strip()}: {v.strip()}"
+
+        if self._changelog_file.exists():
+            with open(self._changelog_file, 'a') as _outfl:
+                _outfl.write(f"{changelog_entry}\n\n\n")
+        else:
+            with open(self._changelog_file, '+w') as _outfl:
+                _outfl.write(f"{changelog_entry}\n\n\n")
+
+    def update_version(self):
+        self._version = {
+            "app": self._app.get_version(),
+            "api": self._api.get_version(),
+            "ui": self._ui.get_version()
+        }
+
+    __update = update_version
+
+
+def main(semver_str, pump_app=False, pump_api=False, pump_ui=False):
+    _app = ArcBuilder()
+    _app.pump_version(semver_str=semver_str, pump_app=pump_app, pump_api=pump_api, pump_ui=pump_ui)
+    _app.changelog()
+
+
+if __name__ == '__main__':
+    app_name = ""
+    in_semver_str = ''
+    in_pump_app = False
+    in_pump_api = False
+    in_pump_ui = False
+
+    _args = sys.argv
+    if len(_args) > 1:
+        in_semver_str = _args[1]
+
+    if len(_args) > 2:
+        in_pump_app = _args[2]
+
+    if len(_args) > 3:
+        in_pump_api = _args[3]
+
+    if len(_args) > 4:
+        in_pump_ui = _args[4]
+
+    main(in_semver_str, in_pump_app, in_pump_api, in_pump_ui)
+

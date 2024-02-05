@@ -7,7 +7,7 @@ authors = ["Gumshoe Media Inc. <65322760+gumshoe00@users.noreply.github.com>"]
 [tool.poetry.dependencies]
 python = "^3.9"
 pydantic = "^1.9.1"
-fastapi = "^0.79.0"
+fastapi = "^0.109.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
